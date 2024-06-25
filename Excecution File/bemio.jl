@@ -9,7 +9,7 @@ include("C:/Users/jelope/Desktop/Git/WEC-Sim/source/functions/BEMIO/radiationIRF
 
 # using DelimitedFiles
 hydro = Dict{Any, Any}()
-option = 1  # Set option: 0 for WAMIT, 1 for OSWEC
+option = 0  # Set option: 0 for WAMIT, 1 for OSWEC
 
 if option == 0
     # WAMIT
