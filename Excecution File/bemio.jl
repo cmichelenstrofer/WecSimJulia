@@ -21,11 +21,11 @@ data = radiationIRF(hydro)
 hydro = radiationIRFSS( nothing, nothing)  # Replace 'radiationIRFSS' with appropriate code
 
 # Excitation IRF
-#hydro = excitationIRF(hydro, 157, nothing, nothing, nothing, nothing)  # Replace 'excitationIRF' with appropriate code
+hydro = excitationIRF(hydro, 157, nothing, nothing, nothing, nothing)  # Replace 'excitationIRF' with appropriate code
 
 # Write BEMIOH5
-#writeBEMIOH5(hydro)  # Replace 'writeBEMIOH5' with appropriate code
+writeBEMIOH5(hydro)  # Replace 'writeBEMIOH5' with appropriate code
 
 # Plot hydro data
-#plotBEMIO(hydro)
+plotBEMIO(hydro)
 
