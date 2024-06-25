@@ -7,7 +7,6 @@ include("C:/Users/jelope/Desktop/Git/WEC-Sim/source/functions/BEMIO/radiationIRF
 #include("C:/Users/jelope/Desktop/Git/WEC-Sim/source/functions/BEMIO/plotBEMIO.jl")
 ###################################################################################################
 
-# using DelimitedFiles
 hydro = Dict{Any, Any}()
 option = 0  # Set option: 0 for WAMIT, 1 for OSWEC
 
