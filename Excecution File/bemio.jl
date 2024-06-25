@@ -9,23 +9,24 @@ include("C:/Users/jelope/Desktop/Git/WEC-Sim/source/functions/BEMIO/radiationIRF
 
 # using DelimitedFiles
 hydro = Dict{Any, Any}()
-# Hydro data
-hydro = readWAMIT(filepath = "C:/Users/jelope/Desktop/Git/WEC-Sim/examples/RM3/hydroData/rm3.out")  # Replace 'readWAMIT' with appropriate code to read .out file
+option = 1  # Set option: 0 for WAMIT, 1 for OSWEC
 
-# Radiation IRF
-# Call the radiationIRF function with the data dictionary
-data = radiationIRF(hydro)
+if option == 0
+    # WAMIT
+    hydro = readWAMIT(filepath = "C:/Users/jelope/Desktop/Git/WEC-Sim/examples/RM3/hydroData/rm3.out")
+    data = radiationIRF(hydro)
+    hydro = radiationIRFSS(nothing, nothing)
+    hydro = excitationIRF(hydro, 157, nothing, nothing, nothing, nothing)
+    writeBEMIOH5(hydro)
 
+    # Plot hydro data
+    #plotBEMIO(hydro)
+elseif option == 1
+    # OSWEC
+    hydro = readWAMIT(filepath = "C:/Users/jelope/Desktop/Git/WEC-Sim/examples/OSWEC/hydroData/oswec.out")
+    hydro = radiationIRF(hydro, 30, nothing, nothing, nothing, nothing)
+    hydro = radiationIRFSS(hydro, nothing, nothing)
+    hydro = excitationIRF(hydro, 30, nothing, nothing, nothing, nothing)
+end
 
-# Radiation IRFSS
-hydro = radiationIRFSS( nothing, nothing)  # Replace 'radiationIRFSS' with appropriate code
-
-# Excitation IRF
-hydro = excitationIRF(hydro, 157, nothing, nothing, nothing, nothing)  # Replace 'excitationIRF' with appropriate code
-
-# Write BEMIOH5
-writeBEMIOH5(hydro)  # Replace 'writeBEMIOH5' with appropriate code
-
-# Plot hydro data
-plotBEMIO(hydro)
 
