@@ -1,0 +1,49 @@
+function normalizeBEM(hydro::HydroData)
+    # Sorting, if necessary
+    if !issorted(hydro.w)
+        sorted_indices = sortperm(hydro.w)
+        hydro.w = hydro.w[sorted_indices]
+        hydro.T = hydro.T[sorted_indices]
+        hydro.A = hydro.A[:, :, sorted_indices]
+        hydro.B = hydro.B[:, :, sorted_indices]
+        hydro.ex_ma = hydro.ex_ma[:, :, sorted_indices]
+        hydro.ex_ph = hydro.ex_ph[:, :, sorted_indices]
+        hydro.ex_re = hydro.ex_re[:, :, sorted_indices]
+        hydro.ex_im = hydro.ex_im[:, :, sorted_indices]
+        hydro.sc_ma = hydro.sc_ma[:, :, sorted_indices]
+        hydro.sc_ph = hydro.sc_ph[:, :, sorted_indices]
+        hydro.sc_re = hydro.sc_re[:, :, sorted_indices]
+        hydro.sc_im = hydro.sc_im[:, :, sorted_indices]
+        hydro.fk_ma = hydro.fk_ma[:, :, sorted_indices]
+        hydro.fk_ph = hydro.fk_ph[:, :, sorted_indices]
+        hydro.fk_re = hydro.fk_re[:, :, sorted_indices]
+        hydro.fk_im = hydro.fk_im[:, :, sorted_indices]
+    end
+
+    # Normalization
+    if hydro.code != "WAMIT"
+        g = hydro.g
+        rho = hydro.rho
+        hydro.Khs /= (g * rho)
+        hydro.A /= rho
+        hydro.Ainf = hydro.A[:, :, end]  # This will be overwritten with a more accurate method by radiationIRF.m
+        
+        for i in 1:length(hydro.w)
+            hydro.B[:, :, i] /= (rho * hydro.w[i])
+        end
+        
+        hydro.ex_ma /= (g * rho)
+        hydro.ex_re /= (g * rho)
+        hydro.ex_im /= (g * rho)
+        
+        hydro.sc_ma /= (g * rho)
+        hydro.sc_re /= (g * rho)
+        hydro.sc_im /= (g * rho)
+        
+        hydro.fk_ma /= (g * rho)
+        hydro.fk_re /= (g * rho)
+        hydro.fk_im /= (g * rho)
+    end
+
+    return hydro
+end
