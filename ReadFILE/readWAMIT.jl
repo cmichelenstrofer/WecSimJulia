@@ -2,9 +2,7 @@ using DelimitedFiles
 using ProgressMeter
 using Statistics
 
-include("C:/Users/jelope/Desktop/Git/WEC-Sim/source/functions/BEMIO/normalizeBEM.jl")
-
-mutable struct WAMITData
+mutable struct HydroData
     code::String
     file::String
     h::Float64
@@ -14,21 +12,21 @@ mutable struct WAMITData
     Nb::Int
     Nf::Int
     Nh::Int
-    Ainf::Matrix{Float64}
+    Ainf::Array{Float64, 2}
     A::Array{Float16, 3}
     B::Array{Float16, 3}
     T::Vector{Float32}
     w::Vector{Float16}
     Vo::Vector{Float64}
-    cg::Array{Float16, 3}
-    cb::Array{Float16, 3}
+    cg::Array{Float16, 2}
+    cb::Array{Float16, 2}
     Khs::Array{Float16, 3}
     theta::Vector{Float16}
     dof::Vector{Int}
-    ex_ma::Array{Float16, 3}
-    ex_ph::Array{Float16, 3}
-    ex_re::Array{Float16, 3}
-    ex_im::Array{Float16, 3}
+    ex_ma::Array{Float32, 3}
+    ex_ph::Array{Float32, 3}
+    ex_re::Array{Float32, 3}
+    ex_im::Array{Float32, 3}
     sc_ma::Array{Float16, 3}
     sc_ph::Array{Float16, 3}
     sc_re::Array{Float16, 3}
@@ -37,78 +35,102 @@ mutable struct WAMITData
     fk_ph::Array{Float16, 3}
     fk_re::Array{Float16, 3}
     fk_im::Array{Float16, 3}
-    ra_K::Array{Float64, 3}
-    ra_t::Array{Float64, 2}
-    ra_w::Array{Float64, 2}
+    md_mc::Array{Float64, 3}
+    md_cs::Array{Float64, 3}
+    md_pi::Array{Float64, 3}
+    gbm::Array{Float64, 3}
+    ra_K::Array{Float32, 3}
+    ra_t::Vector{Float32}
+    ra_w::Vector{Float32}
+    ss_A::Array{Float64, 4}
+    ss_B::Array{Float64, 3}
+    ss_C::Array{Float64, 4}
+    ss_D::Array{Float64, 2}
+    ss_K::Array{Float64, 3}
+    ss_conv::Array{Float64, 2}
+    ss_R2::Array{Float64, 2}
+    ss_O::Array{Float64, 2}
 end
 
-function readWAMIT(; filepath::String)
-    data = WAMITData(
+# Ensure the normalizeBEM and radiationIRFSS functions are included
+include("C:/Users/jelope/Desktop/Git/WEC-Sim/source/functions/BEMIO/normalizeBEMv2.jl")
+
+function readWAMIT(file_path::String)
+    num_wave_periods = 260  # Assuming 260 wave periods
+    data = HydroData(
         "WAMIT",
-        splitext(basename(filepath))[1],
-        Inf,
-        9.81,
-        1000.0,
-        String[],
-        0,
-        0,
-        0,
-        zeros(Float64, 12, 12),
-        zeros(Float16, 12, 12, 260),
-        zeros(Float16, 12, 12, 260),
-        zeros(Float32, 260),
-        zeros(Float16, 260),
-        Float64[],
-        zeros(Float16, 3, 2),
-        zeros(Float16, 3, 2),
-        Array{Float16}(undef, 6, 6, 2),
-        Float16[],
-        Int[],
-        NaN * ones(Float16, 12, 1, 260),
-        NaN * ones(Float16, 12, 1, 260),
-        NaN * ones(Float16, 12, 1, 260),
-        NaN * ones(Float16, 12, 1, 260),
-        NaN * ones(Float16, 12, 1, 260),
-        NaN * ones(Float16, 12, 1, 260),
-        NaN * ones(Float16, 12, 1, 260),
-        NaN * ones(Float16, 12, 1, 260),
-        NaN * ones(Float16, 12, 1, 260),
-        NaN * ones(Float16, 12, 1, 260),
-        NaN * ones(Float16, 12, 1, 260),
-        zeros(Float64, 12, 12, 1001),
-        zeros(Float64, 1, 1001),
-        zeros(Float64, 1, 1001)
+        splitext(basename(file_path))[1],
+        Inf,           # Water depth
+        9.81,          # Gravity
+        1000.0,        # Water density
+        String[],      # Body names
+        0,             # Number of bodies
+        0,             # Number of wave frequencies
+        0,             # Number of wave headings
+        zeros(Float64, 12, 12),  # Added Mass Coefficients at WaveNumber = infinity
+        zeros(Float16, 12, 12, num_wave_periods),  # Added Mass Coefficients
+        zeros(Float16, 12, 12, num_wave_periods),  # Radiation Damping Coefficients
+        zeros(Float32, num_wave_periods),  # Wave period
+        zeros(Float16, num_wave_periods),  # Wave frequencies
+        Float64[],    # Displacement volume
+        zeros(Float16, 3, 2),  # Center of Gravity
+        zeros(Float16, 3, 2),  # Center of Buoyancy
+        zeros(Float16, 6, 6, 2),  # Hydrostatic and gravitational restoring coefficients
+        Float16[],    # Wave headings
+        Int[],        # Degrees of freedom for each body
+        NaN * ones(Float32, 12, 1, 260),  # Exciting force magnitudes
+        NaN * ones(Float32, 12, 1, 260),  # Exciting force phases
+        NaN * ones(Float32, 12, 1, 260),  # Exciting force real parts
+        NaN * ones(Float32, 12, 1, 260),  # Exciting force imaginary parts
+        NaN * ones(Float16, 12, 1, 260),  # Scattering force magnitudes
+        NaN * ones(Float16, 12, 1, 260),  # Scattering force phases
+        NaN * ones(Float16, 12, 1, 260),  # Scattering force real parts
+        NaN * ones(Float16, 12, 1, 260),  # Scattering force imaginary parts
+        NaN * ones(Float16, 12, 1, 260),  # Froude-Krylov force magnitudes
+        NaN * ones(Float16, 12, 1, 260),  # Froude-Krylov force phases
+        NaN * ones(Float16, 12, 1, 260),  # Froude-Krylov force real parts
+        NaN * ones(Float16, 12, 1, 260),  # Froude-Krylov force imaginary parts
+        zeros(Float64, 12, 12, 260),       # Momentum Conservation Drift Forces
+        zeros(Float64, 12, 12, 260),       # Control Surface Drift Forces
+        zeros(Float64, 12, 12, 260),       # Pressure Integration Drift Forces
+        zeros(Float64, 0, 0, 0),  # Placeholder for gbm
+        zeros(Float32, 12, 12, 1001),  # Initialize ra_K with correct dimensions
+        Float32[],     # Placeholder for ra_t
+        Float32[],     # Placeholder for ra_w
+        zeros(Float64, 12, 12, 10, 10),   # ss_A
+        zeros(Float64, 12, 12, 10),       # ss_B
+        zeros(Float64, 12, 12, 1, 10),    # ss_C
+        zeros(Float64, 12, 12),           # ss_D
+        zeros(Float64, 12, 12, 1001),     # ss_K
+        zeros(Float64, 12, 12),           # ss_conv
+        zeros(Float64, 12, 12),           # ss_R2
+        zeros(Float64, 12, 12)            # ss_O
     )
 
-    raw = readdlm(filepath, '\n', String)[:, 1]
+    raw = readdlm(file_path, '\n', String)[:, 1]
     N = length(raw)
-    progress = Progress(N, 1, "Reading WAMIT output file...")  # Progress bar
-    
-    ## Three flags are used to parse data on whether the specific section is being read ##
+    progress = ProgressMeter.Progress(N, 1, "Reading WAMIT output file...")  # Progress bar
+
     reading_added_mass_inf = false
     reading_added_mass_damping = false
     reading_exciting_forces = false
-
-    ## Counter for wave periods and to correctly allocate the data for each particular wave period ##
     current_wave_period = 0
 
     k = 0
     for i in 1:N
-        update!(progress, i)
+        ProgressMeter.update!(progress, i)
         line = raw[i]
 
-        ## For identifying the Body Names and the Number of Bodies
         if occursin("Body number:", line)
             k += 1
             tmp = split(line, [' ', '.'])
             tmp = filter(x -> !isempty(x), tmp)
-            push!(data.body, "Body $k")               # Body names (assuming body names are sequential)
-            data.Nb += 1                              # Number of bodies
-            push!(data.dof, 6)                        # Default degrees of freedom for each body is 6
-            push!(data.Vo, 0.0)                       # Initialize displacement volume for the body
+            push!(data.body, "Body $k")
+            data.Nb += 1
+            push!(data.dof, 6)
+            push!(data.Vo, 0.0)
         end
 
-        ## For identifying the Center of Gravity (Xg, Yg, Zg)
         if occursin("XBODY =", line)
             values = split(line)
             xg = parse(Float64, values[3])
@@ -117,7 +139,6 @@ function readWAMIT(; filepath::String)
             data.cg[:, k] = [xg, yg, zg]
         end
 
-        ## For identifying the Center of Buoyancy (Xb, Yb, Zb)
         if occursin("Center of Buoyancy (Xb,Yb,Zb):", line)
             values = split(line[findfirst(':', line)+1:end])
             xb = parse(Float64, values[1])
@@ -126,7 +147,6 @@ function readWAMIT(; filepath::String)
             data.cb[:, k] = [xb, yb, zb]
         end
 
-        ## For identifying the Hydrostatic and gravitational restoring coefficients
         if occursin("Hydrostatic and gravitational", line)
             data.Khs[:, :, k] .= 0.0
             tmp1 = parse.(Float64, split(raw[i+1][findfirst(':', raw[i+1])+1:end]))
@@ -139,14 +159,12 @@ function readWAMIT(; filepath::String)
             data.Khs[5, 5:6, k] = tmp3
         end
 
-        ## For identifying the Water Depth
         if occursin("Water depth:", line)
             if occursin("infinite", line)
-                data.h = Inf  # Directly assign Inf for "infinite" water depth
+                data.h = Inf
             else
-                # Extract and parse the numerical value for water depth
                 tmp = split(line, r"\s+")
-                depth_str = tmp[end]  # Assuming the depth value is the last element
+                depth_str = tmp[end]
                 depth_val = tryparse(Float64, depth_str)
                 if depth_val !== nothing
                     data.h = depth_val
@@ -156,52 +174,40 @@ function readWAMIT(; filepath::String)
             end
         end
 
-        ## For identifying the Water Volumes (x, y and z)
         if occursin("Volumes (VOLX,VOLY,VOLZ):", line)
-            # Split the line at the colon to get the numbers part
             numbers_part = split(line, ":")[2]
-            
-            # Split the numbers part by whitespace and filter out empty strings
             numbers_str = split(strip(numbers_part))
-            numbers_str = filter(s -> !isempty(s), numbers_str)  # Filter out empty strings
-            
-            println("Parsing Volumes: ", numbers_str)  # Diagnostic print
-            
-            # Safely parse the numbers
+            numbers_str = filter(s -> !isempty(s), numbers_str)
+            println("Parsing Volumes: ", numbers_str)
             numbers = parse.(Float64, numbers_str)
-            
-            # Storing Average values of the volumes of the current body
-            data.Vo[k] = mean(numbers) 
+            data.Vo[k] = mean(numbers)
         end
 
-        ## For identifying the Wave Period
         if occursin("Wave period (sec) =", line)
             split_line = split(line, "=")
-            if length(split_line) >= 2  # Ensure the split line has enough elements
+            if length(split_line) >= 2
                 wave_period = parse(Float64, split(split_line[2])[1])
                 current_wave_period += 1
                 data.T[current_wave_period] = wave_period
-                data.w[current_wave_period] = 2 * π / wave_period  # Compute wave frequency and store it in the [:w] matrix
+                data.w[current_wave_period] = Float16(2 * π / wave_period)  # Ensure wave frequency is Float16
                 data.Nf += 1
                 println("Parsed wave period for period $current_wave_period: $wave_period")
                 println("Computed wave frequency for period $current_wave_period: $(data.w[current_wave_period])")
             end
         end
 
-        ## For identifying the Wave Headings
         if occursin("Wave Heading", line)
             tmp = parse(Float64, split(line[findfirst(':', line)+1:end])[1])
             push!(data.theta, tmp)
             data.Nh += 1
         end
-        
-        ## For identifying the Added Mass Coefficients at Infinite Wave Period
+
         if occursin("ADDED-MASS COEFFICIENTS", line) && occursin("Wavenumber = infinite", raw[i-2])
             println("Found ADDED-MASS COEFFICIENTS with Wavenumber = infinite at line $i")
             reading_added_mass_inf = true
             continue
         end
-        
+
         if reading_added_mass_inf
             if occursin("************************************************************************", line)
                 reading_added_mass_inf = false
@@ -218,14 +224,13 @@ function readWAMIT(; filepath::String)
                 println("Ainf[$I, $J] = $A")
             end
         end
-        
-        ## For identifying the Added Mass Coefficients and Damping Coefficients at a Given Wave Period
+
         if occursin("ADDED-MASS AND DAMPING COEFFICIENTS", line)
             reading_added_mass_damping = true
             println("Found ADDED-MASS AND DAMPING COEFFICIENTS at line $i for wave period $current_wave_period")
             continue
         end
-        
+
         if reading_added_mass_damping
             if occursin("************************************************************************", line)
                 reading_added_mass_damping = false
@@ -245,13 +250,12 @@ function readWAMIT(; filepath::String)
             end
         end
 
-        ## For identifying the Exciting Forces
         if occursin("HASKIND EXCITING FORCES AND MOMENTS", line) || occursin("DIFFRACTION EXCITING FORCES AND MOMENTS", line) || occursin("RESPONSE AMPLITUDE OPERATORS", line)
             reading_exciting_forces = true
             println("Found EXCITING FORCES at line $i for wave period $current_wave_period")
             continue
         end
-        
+
         if reading_exciting_forces
             if occursin("************************************************************************", line)
                 reading_exciting_forces = false
@@ -279,16 +283,42 @@ function readWAMIT(; filepath::String)
                 end
             end
         end
+
+        # Handling Drift Forces (Example for momentum conservation method)
+        if occursin("SURGE, SWAY & YAW DRIFT FORCES (Momentum Conservation)", line)
+            data.Nh = 0  # Number of wave headings
+            i = n + 1
+            data.md_mc[:, :, data.Nf] .= 0.0
+            while occursin("Wave Heading", raw[i])
+                data.Nh += 1
+                tmp = parse(Float64, split(raw[i][findfirst(':', raw[i])+1:end])[1])
+                push!(data.theta, tmp)
+                i += 2
+                while !occursin("*******************************", raw[i]) && 
+                      !occursin("EXCITING FORCES AND MOMENTS", raw[i]) &&
+                      !occursin("RESPONSE AMPLITUDE OPERATORS", raw[i]) &&
+                      !occursin("SURGE, SWAY & YAW DRIFT FORCES (Momentum Conservation)", raw[i]) &&
+                      !occursin("SURGE, SWAY, HEAVE, ROLL, PITCH & YAW DRIFT FORCES (Control Surface)", raw[i]) &&
+                      !occursin("SURGE, SWAY, HEAVE, ROLL, PITCH & YAW DRIFT FORCES (Pressure Integration)", raw[i]) &&
+                      !occursin("Wave Heading", raw[i])
+                    tmp = parse.(Float64, split(raw[i]))
+                    I = abs(tmp[1])
+                    if I <= 12
+                        data.md_mc[I, data.Nh, data.Nf] = tmp[2] * cos(deg2rad(tmp[3]))
+                    end
+                    i += 1
+                end
+            end
+        end
     end
 
-    # Scattering Force
-    sc_file = replace(filepath, ".out" => ".3sc")
+    sc_file = replace(file_path, ".out" => ".3sc")
     if isfile(sc_file)
         raw_sc = readdlm(sc_file, '\n', String)[:, 1]
         n = 1
         for i in 1:data.Nf
             for j in 1:data.Nh
-                for k in 1:round(Int, size(findall(!isnan, data.ex_ma), 1) / data.Nf / data.Nh)  # Number of non-zero dof
+                for k in 1:round(Int, size(findall(!isnan, data.ex_ma), 1) / data.Nf / data.Nh)
                     n += 1
                     values = parse.(Float64, split(raw_sc[n]))
                     I = values[3]
@@ -305,14 +335,13 @@ function readWAMIT(; filepath::String)
         end
     end
 
-    # Froude-Krylov force
-    fk_file = replace(filepath, ".out" => ".3fk")
+    fk_file = replace(file_path, ".out" => ".3fk")
     if isfile(fk_file)
         raw_fk = readdlm(fk_file, '\n', String)[:, 1]
         n = 1
         for i in 1:data.Nf
             for j in 1:data.Nh
-                for k in 1:round(Int, size(findall(!isnan, data.ex_ma), 1) / data.Nf / data.Nh)  # Number of non-zero dof
+                for k in 1:round(Int, size(findall(!isnan, data.ex_ma), 1) / data.Nf / data.Nh)
                     n += 1
                     values = parse.(Float64, split(raw_fk[n]))
                     I = values[3]
@@ -329,8 +358,7 @@ function readWAMIT(; filepath::String)
         end
     end
 
-    # Adjust DOF if generalized body modes are used
-    cfg_file = replace(filepath, ".out" => ".cfg")
+    cfg_file = replace(file_path, ".out" => ".cfg")
     if isfile(cfg_file)
         raw_cfg = readdlm(cfg_file, '\n', String)[:, 1]
         for line in raw_cfg
@@ -346,8 +374,99 @@ function readWAMIT(; filepath::String)
                 end
             end
         end
+        if sum(data.dof) > data.Nb * 6
+            mmx_file = replace(file_path, ".out" => ".mmx")
+            if isfile(mmx_file)
+                raw_mmx = readdlm(mmx_file, '\n', String)[:, 1]
+                for line in raw_mmx
+                    if occursin("External force matrices", line)
+                        for k in 1:sum(data.dof) * sum(data.dof)
+                            tmp = parse.(Float64, split(raw_mmx[line+k+1]))
+                            data.gbm[tmp[1], tmp[2], 1] = tmp[3]  # Mass
+                            data.gbm[tmp[1], tmp[2], 2] = tmp[4]  # Damping
+                            data.gbm[tmp[1], tmp[2], 3] = tmp[5]  # Stiffness
+                        end
+                    end
+                end
+            end
+            hst_file = replace(file_path, ".out" => ".hst")
+            if isfile(hst_file)
+                raw_hst = readdlm(hst_file, '\n', String)[:, 1]
+                for line in raw_hst[2:end]
+                    tmp = parse.(Float64, split(line))
+                    data.gbm[tmp[1], tmp[2], 4] = tmp[3]  # Hydrostatic Stiffness
+                end
+            end
+        end
     end
-    normalizeBEM(data)
-    println("Normalizing data....")
+
+    # Call the normalizeBEM function to normalize the data
+    data = normalizeBEM(data)
     return data
+end
+
+function print_hydro_data(data::HydroData)
+    println("HydroData Structure:")
+    println("code: ", data.code)
+    println("file: ", data.file)
+    println("h: ", data.h)
+    println("g: ", data.g)
+    println("rho: ", data.rho)
+    println("Nb: ", data.Nb)
+    println("Nf: ", data.Nf)
+    println("Nh: ", data.Nh)
+    println("body: ", data.body)
+    println("Ainf: ")
+    println(data.Ainf)
+    println("A: ")
+    println(data.A)
+    println("B: ")
+    println(data.B)
+    println("T: ", data.T)
+    println("w: ", data.w)
+    println("Vo: ", data.Vo)
+    println("cg: ")
+    println(data.cg)
+    println("cb: ")
+    println(data.cb)
+    println("Khs: ")
+    println(data.Khs)
+    println("theta: ", data.theta)
+    println("dof: ", data.dof)
+    println("ex_ma: ")
+    println(data.ex_ma)
+    println("ex_ph: ")
+    println(data.ex_ph)
+    println("ex_re: ")
+    println(data.ex_re)
+    println("ex_im: ")
+    println(data.ex_im)
+    println("sc_ma: ")
+    println(data.sc_ma)
+    println("sc_ph: ")
+    println(data.sc_ph)
+    println("sc_re: ")
+    println(data.sc_re)
+    println("sc_im: ")
+    println(data.sc_im)
+    println("fk_ma: ")
+    println(data.fk_ma)
+    println("fk_ph: ")
+    println(data.fk_ph)
+    println("fk_re: ")
+    println(data.fk_re)
+    println("fk_im: ")
+    println(data.fk_im)
+    println("md_mc: ")
+    println(data.md_mc)
+    println("md_cs: ")
+    println(data.md_cs)
+    println("md_pi: ")
+    println(data.md_pi)
+    println("gbm: ")
+    println(data.gbm)
+    println("ra_K: ")
+    println(data.ra_K)
+    println("ra_t: ", data.ra_t)
+    println("ra_w: ", data.ra_w)
 end
