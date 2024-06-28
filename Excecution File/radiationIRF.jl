@@ -1,12 +1,15 @@
 using Interpolations, Statistics, ProgressMeter
 
+#include("C:/Users/jelope/Desktop/Git/WEC-Sim/source/functions/BEMIO/readWAMITv2.jl")
+
+
 function radiationIRF(data::HydroData, tEnd = 100, nDt = 1001, nDw = 1001, wMin = minimum(data.w), wMax = maximum(data.w))
     p = ProgressMeter.Progress(length(data.dof)^2, desc = "Calculating radiation IRFs...")  # Progress bar
 
     t = range(Float32(0), stop = Float32(tEnd), length = nDt)
     w = range(Float32(wMin), stop = Float32(wMax), length = nDw)
 
-    data.ra_K = zeros(Float32, 12, 12, length(t))  # Ensure this matches your data structure
+    data.ra_K = zeros(Float16, 12, 12, length(t))  # Ensure this matches your data structure
 
     for i in 1:sum(data.dof)
         for j in 1:sum(data.dof)
