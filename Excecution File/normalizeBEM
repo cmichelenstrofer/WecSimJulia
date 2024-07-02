@@ -1,49 +1,44 @@
-function normalizeBEM(hydro::HydroData)
-    # Sorting, if necessary
-    if !issorted(hydro.w)
-        sorted_indices = sortperm(hydro.w)
-        hydro.w = hydro.w[sorted_indices]
-        hydro.T = hydro.T[sorted_indices]
-        hydro.A = hydro.A[:, :, sorted_indices]
-        hydro.B = hydro.B[:, :, sorted_indices]
-        hydro.ex_ma = hydro.ex_ma[:, :, sorted_indices]
-        hydro.ex_ph = hydro.ex_ph[:, :, sorted_indices]
-        hydro.ex_re = hydro.ex_re[:, :, sorted_indices]
-        hydro.ex_im = hydro.ex_im[:, :, sorted_indices]
-        hydro.sc_ma = hydro.sc_ma[:, :, sorted_indices]
-        hydro.sc_ph = hydro.sc_ph[:, :, sorted_indices]
-        hydro.sc_re = hydro.sc_re[:, :, sorted_indices]
-        hydro.sc_im = hydro.sc_im[:, :, sorted_indices]
-        hydro.fk_ma = hydro.fk_ma[:, :, sorted_indices]
-        hydro.fk_ph = hydro.fk_ph[:, :, sorted_indices]
-        hydro.fk_re = hydro.fk_re[:, :, sorted_indices]
-        hydro.fk_im = hydro.fk_im[:, :, sorted_indices]
+function normalizeBEM(data::HydroData)
+    # Sort, if necessary
+    if !issorted(data.w)
+        I = sortperm(data.w)
+        data.w = data.w[I]
+        data.T = data.T[I]
+        data.A = data.A[:, :, I]
+        data.B = data.B[:, :, I]
+        data.ex_ma = data.ex_ma[:, :, I]
+        data.ex_ph = data.ex_ph[:, :, I]
+        data.ex_re = data.ex_re[:, :, I]
+        data.ex_im = data.ex_im[:, :, I]
+        data.sc_ma = data.sc_ma[:, :, I]
+        data.sc_ph = data.sc_ph[:, :, I]
+        data.sc_re = data.sc_re[:, :, I]
+        data.sc_im = data.sc_im[:, :, I]
+        data.fk_ma = data.fk_ma[:, :, I]
+        data.fk_ph = data.fk_ph[:, :, I]
+        data.fk_re = data.fk_re[:, :, I]
+        data.fk_im = data.fk_im[:, :, I]
     end
 
-    # Normalization
-    if hydro.code != "WAMIT"
-        g = hydro.g
-        rho = hydro.rho
-        hydro.Khs /= (g * rho)
-        hydro.A /= rho
-        hydro.Ainf = hydro.A[:, :, end]  # This will be overwritten with a more accurate method by radiationIRF.m
-        
-        for i in 1:length(hydro.w)
-            hydro.B[:, :, i] /= (rho * hydro.w[i])
+    if data.code != "WAMIT"  # Normalize
+        g = data.g
+        rho = data.rho
+        data.Khs = data.Khs / (g * rho)
+        data.A = data.A / rho
+        data.Ainf = data.A[:, :, end]  # Assuming this is correct based on your structure
+        for i in 1:length(data.w)
+            data.B[:, :, i] = data.B[:, :, i] / (rho * data.w[i])
         end
-        
-        hydro.ex_ma /= (g * rho)
-        hydro.ex_re /= (g * rho)
-        hydro.ex_im /= (g * rho)
-        
-        hydro.sc_ma /= (g * rho)
-        hydro.sc_re /= (g * rho)
-        hydro.sc_im /= (g * rho)
-        
-        hydro.fk_ma /= (g * rho)
-        hydro.fk_re /= (g * rho)
-        hydro.fk_im /= (g * rho)
+        data.ex_ma = data.ex_ma / (g * rho)
+        data.ex_re = data.ex_re / (g * rho)
+        data.ex_im = data.ex_im / (g * rho)
+        data.sc_ma = data.sc_ma / (g * rho)
+        data.sc_re = data.sc_re / (g * rho)
+        data.sc_im = data.sc_im / (g * rho)
+        data.fk_ma = data.fk_ma / (g * rho)
+        data.fk_re = data.fk_re / (g * rho)
+        data.fk_im = data.fk_im / (g * rho)
     end
 
-    return hydro
+    return data
 end
