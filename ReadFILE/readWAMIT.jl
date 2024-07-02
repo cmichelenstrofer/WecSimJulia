@@ -13,35 +13,38 @@ mutable struct HydroData
     Nf::Int
     Nh::Int
     Ainf::Array{Float64, 2}
-    A::Array{Float16, 3}
-    B::Array{Float16, 3}
-    T::Vector{Float32}
-    w::Vector{Float16}
+    A::Array{Float64, 3}
+    B::Array{Float64, 3}
+    T::Vector{Float64}
+    w::Vector{Float64}
     Vo::Vector{Float64}
-    cg::Array{Float16, 2}
-    cb::Array{Float16, 2}
-    Khs::Array{Float16, 3}
-    theta::Vector{Float16}
+    cg::Array{Float64, 2}
+    cb::Array{Float64, 2}
+    Khs::Array{Float64, 3}
+    theta::Vector{Float64}
     dof::Vector{Int}
-    ex_ma::Array{Float32, 3}
-    ex_ph::Array{Float32, 3}
-    ex_re::Array{Float32, 3}
-    ex_im::Array{Float32, 3}
-    sc_ma::Array{Float16, 3}
-    sc_ph::Array{Float16, 3}
-    sc_re::Array{Float16, 3}
-    sc_im::Array{Float16, 3}
-    fk_ma::Array{Float16, 3}
-    fk_ph::Array{Float16, 3}
-    fk_re::Array{Float16, 3}
-    fk_im::Array{Float16, 3}
+    ex_ma::Array{Float64, 3}
+    ex_ph::Array{Float64, 3}
+    ex_re::Array{Float64, 3}
+    ex_im::Array{Float64, 3}
+    ex_K::Array{Float64, 3}
+    ex_t::Vector{Float64}
+    ex_w::Vector{Float64}
+    sc_ma::Array{Float64, 3}
+    sc_ph::Array{Float64, 3}
+    sc_re::Array{Float64, 3}
+    sc_im::Array{Float64, 3}
+    fk_ma::Array{Float64, 3}
+    fk_ph::Array{Float64, 3}
+    fk_re::Array{Float64, 3}
+    fk_im::Array{Float64, 3}
     md_mc::Array{Float64, 3}
     md_cs::Array{Float64, 3}
     md_pi::Array{Float64, 3}
     gbm::Array{Float64, 3}
-    ra_K::Array{Float32, 3}
-    ra_t::Vector{Float32}
-    ra_w::Vector{Float32}
+    ra_K::Array{Float64, 3}
+    ra_t::Vector{Float64}
+    ra_w::Vector{Float64}
     ss_A::Array{Float64, 4}
     ss_B::Array{Float64, 3}
     ss_C::Array{Float64, 4}
@@ -82,6 +85,9 @@ function readWAMIT(file_path::String)
         NaN * ones(Float32, 12, 1, 260),  # Exciting force phases
         NaN * ones(Float32, 12, 1, 260),  # Exciting force real parts
         NaN * ones(Float32, 12, 1, 260),  # Exciting force imaginary parts
+        NaN * ones(Float32, 12, 1, 1001), # Exciting force K
+        Float32[],     # Placeholder for ex_t
+        Float32[],     # Placeholder for ex_t
         NaN * ones(Float16, 12, 1, 260),  # Scattering force magnitudes
         NaN * ones(Float16, 12, 1, 260),  # Scattering force phases
         NaN * ones(Float16, 12, 1, 260),  # Scattering force real parts
@@ -471,14 +477,27 @@ function print_hydro_data(data::HydroData)
     println("fk_im (first three columns of each layer): ")
     println(data.fk_im[:, :, 1:3])
     
-    #println("md_mc: ", data.md_mc)
-    #println("md_cs: ", data.md_cs)
-    #println("md_pi: ", data.md_pi)
-    #println("gbm: ", data.gbm)
-    
+    #=println("md_mc: ", data.md_mc)
+    println("md_cs: ", data.md_cs)
+    println("md_pi: ", data.md_pi)
+    println("gbm: ", data.gbm)
+    =#
+
     println("ra_K (first three columns of each layer): ")
     println(data.ra_K[:, :, 1:3])
     
     println("ra_t: ", data.ra_t)
     println("ra_w: ", data.ra_w)
+    println("ex_K: ", data.ex_K[:, :, 1:3])
+    println("ex_t: ", data.ex_t)
+    println("ex_w: ", data.ex_w)
+
+    println("ss_A: ", data.ss_A[:, :, 1:3, 1:3])
+    println("ss_B: ", data.ss_B)
+    println("ss_C: ", data.ss_C[:, :, :, 1:3])
+    println("ss_D: ", data.ss_D[:, 1:3])
+    println("ss_K: ", data.ss_K[:, :, 1:3])
+    println("ss_conv: ", data.ss_conv)
+    println("ssR2: ", data.ss_R2)
+    println("ss_O: ", data.ssO)
 end
