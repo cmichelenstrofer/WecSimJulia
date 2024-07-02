@@ -59,7 +59,21 @@ end
 include("C:/Users/jelope/Desktop/Git/WEC-Sim/source/functions/BEMIO/normalizeBEMv2.jl")
 
 function readWAMIT(file_path::String)
-    num_wave_periods = 260  # Assuming 260 wave periods
+    raw = readdlm(file_path, '\n', String)[:, 1]
+    N = length(raw)
+    progress = ProgressMeter.Progress(N, 1, "Reading WAMIT output file...")  # Progress bar
+
+    current_wave_period = 0
+    Nf = 0  # Initialize Nf
+
+    # First pass to determine the number of wave periods (Nf)
+    for line in raw
+        if occursin("Wave period (sec) =", line)
+            Nf += 1
+        end
+    end
+
+    # Initialize the data structure with the correct number of wave periods
     data = HydroData(
         "WAMIT",
         splitext(basename(file_path))[1],
@@ -68,41 +82,41 @@ function readWAMIT(file_path::String)
         1000.0,        # Water density
         String[],      # Body names
         0,             # Number of bodies
-        0,             # Number of wave frequencies
-        0,             # Number of wave headings
+        Nf,            # Number of wave frequencies (Nf)
+        0,             # Number of wave headings (Nh)
         zeros(Float64, 12, 12),  # Added Mass Coefficients at WaveNumber = infinity
-        zeros(Float16, 12, 12, num_wave_periods),  # Added Mass Coefficients
-        zeros(Float16, 12, 12, num_wave_periods),  # Radiation Damping Coefficients
-        zeros(Float32, num_wave_periods),  # Wave period
-        zeros(Float16, num_wave_periods),  # Wave frequencies
+        zeros(Float64, 12, 12, Nf),  # Added Mass Coefficients
+        zeros(Float64, 12, 12, Nf),  # Radiation Damping Coefficients
+        zeros(Float64, Nf),  # Wave period
+        zeros(Float64, Nf),  # Wave frequencies
         Float64[],    # Displacement volume
-        zeros(Float16, 3, 2),  # Center of Gravity
-        zeros(Float16, 3, 2),  # Center of Buoyancy
-        zeros(Float16, 6, 6, 2),  # Hydrostatic and gravitational restoring coefficients
-        Float16[],    # Wave headings
+        zeros(Float64, 3, 2),  # Center of Gravity
+        zeros(Float64, 3, 2),  # Center of Buoyancy
+        zeros(Float64, 6, 6, 2),  # Hydrostatic and gravitational restoring coefficients
+        Float64[],    # Wave headings
         Int[],        # Degrees of freedom for each body
-        NaN * ones(Float32, 12, 1, 260),  # Exciting force magnitudes
-        NaN * ones(Float32, 12, 1, 260),  # Exciting force phases
-        NaN * ones(Float32, 12, 1, 260),  # Exciting force real parts
-        NaN * ones(Float32, 12, 1, 260),  # Exciting force imaginary parts
-        NaN * ones(Float32, 12, 1, 1001), # Exciting force K
-        Float32[],     # Placeholder for ex_t
-        Float32[],     # Placeholder for ex_t
-        NaN * ones(Float16, 12, 1, 260),  # Scattering force magnitudes
-        NaN * ones(Float16, 12, 1, 260),  # Scattering force phases
-        NaN * ones(Float16, 12, 1, 260),  # Scattering force real parts
-        NaN * ones(Float16, 12, 1, 260),  # Scattering force imaginary parts
-        NaN * ones(Float16, 12, 1, 260),  # Froude-Krylov force magnitudes
-        NaN * ones(Float16, 12, 1, 260),  # Froude-Krylov force phases
-        NaN * ones(Float16, 12, 1, 260),  # Froude-Krylov force real parts
-        NaN * ones(Float16, 12, 1, 260),  # Froude-Krylov force imaginary parts
-        zeros(Float64, 12, 12, 260),       # Momentum Conservation Drift Forces
-        zeros(Float64, 12, 12, 260),       # Control Surface Drift Forces
-        zeros(Float64, 12, 12, 260),       # Pressure Integration Drift Forces
+        NaN * ones(Float64, 12, 1, Nf),  # Exciting force magnitudes
+        NaN * ones(Float64, 12, 1, Nf),  # Exciting force phases
+        NaN * ones(Float64, 12, 1, Nf),  # Exciting force real parts
+        NaN * ones(Float64, 12, 1, Nf),  # Exciting force imaginary parts
+        NaN * ones(Float64, 12, 1, 1001), # Exciting force K
+        Float64[],     # Placeholder for ex_t
+        Float64[],     # Placeholder for ex_t
+        NaN * ones(Float64, 12, 1, Nf),  # Scattering force magnitudes
+        NaN * ones(Float64, 12, 1, Nf),  # Scattering force phases
+        NaN * ones(Float64, 12, 1, Nf),  # Scattering force real parts
+        NaN * ones(Float64, 12, 1, Nf),  # Scattering force imaginary parts
+        NaN * ones(Float64, 12, 1, Nf),  # Froude-Krylov force magnitudes
+        NaN * ones(Float64, 12, 1, Nf),  # Froude-Krylov force phases
+        NaN * ones(Float64, 12, 1, Nf),  # Froude-Krylov force real parts
+        NaN * ones(Float64, 12, 1, Nf),  # Froude-Krylov force imaginary parts
+        zeros(Float64, 12, 12, Nf),       # Momentum Conservation Drift Forces
+        zeros(Float64, 12, 12, Nf),       # Control Surface Drift Forces
+        zeros(Float64, 12, 12, Nf),       # Pressure Integration Drift Forces
         zeros(Float64, 0, 0, 0),  # Placeholder for gbm
-        zeros(Float32, 12, 12, 1001),  # Initialize ra_K with correct dimensions
-        Float32[],     # Placeholder for ra_t
-        Float32[],     # Placeholder for ra_w
+        zeros(Float64, 12, 12, 1001),  # Initialize ra_K with correct dimensions
+        Float64[],     # Placeholder for ra_t
+        Float64[],     # Placeholder for ra_w
         zeros(Float64, 12, 12, 10, 10),   # ss_A
         zeros(Float64, 12, 12, 10),       # ss_B
         zeros(Float64, 12, 12, 1, 10),    # ss_C
@@ -113,14 +127,9 @@ function readWAMIT(file_path::String)
         zeros(Float64, 12, 12)            # ss_O
     )
 
-    raw = readdlm(file_path, '\n', String)[:, 1]
-    N = length(raw)
-    progress = ProgressMeter.Progress(N, 1, "Reading WAMIT output file...")  # Progress bar
-
     reading_added_mass_inf = false
     reading_added_mass_damping = false
     reading_exciting_forces = false
-    current_wave_period = 0
 
     k = 0
     for i in 1:N
@@ -195,8 +204,7 @@ function readWAMIT(file_path::String)
                 wave_period = parse(Float64, split(split_line[2])[1])
                 current_wave_period += 1
                 data.T[current_wave_period] = wave_period
-                data.w[current_wave_period] = Float16(2 * π / wave_period)  # Ensure wave frequency is Float16
-                data.Nf += 1
+                data.w[current_wave_period] = Float64(2 * π / wave_period)  # Ensure wave frequency is Float64
                 println("Parsed wave period for period $current_wave_period: $wave_period")
                 println("Computed wave frequency for period $current_wave_period: $(data.w[current_wave_period])")
             end
