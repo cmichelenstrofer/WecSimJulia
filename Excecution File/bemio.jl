@@ -1,19 +1,20 @@
 include("C:/Users/jelope/Desktop/Git/WEC-Sim/source/functions/BEMIO/readWAMITv2.jl")
 include("C:/Users/jelope/Desktop/Git/WEC-Sim/source/functions/BEMIO/radiationIRFv2.jl")
 include("C:/Users/jelope/Desktop/Git/WEC-Sim/source/functions/BEMIO/radiationIRFSSv2.jl")
-include("C:/Users/jelope/Desktop/Git/WEC-Sim/source/functions/BEMIO/excitationIRF.jl")
-include("C:/Users/jelope/Desktop/Git/WEC-Sim/source/functions/BEMIO/normalizeBEM.jl")
+include("C:/Users/jelope/Desktop/Git/WEC-Sim/source/functions/BEMIO/excitationIRFv2.jl")
+include("C:/Users/jelope/Desktop/Git/WEC-Sim/source/functions/BEMIO/normalizeBEMv2.jl")
+#include("C:/Users/jelope/Desktop/Git/WEC-Sim/source/functions/BEMIO/writeBEMIOH5.jl")
 
 # User input
-option = 0
+option = 1
 
 if option == 0
     # WAMIT
     hydro = readWAMIT("C:/Users/jelope/Desktop/Git/WEC-Sim/examples/RM3/hydroData/rm3.out")
-    hydro = radiationIRF(hydro, 60)
-    hydro = radiationIRFSS(hydro)
-    hydro = excitationIRF(hydro, 157)
-
+    radiationIRF(hydro, 60)
+    #radiationIRFSS(hydro)
+    excitationIRF(hydro, 157)
+    
     # Print field values for comparison
     print_hydro_data(hydro)
 
@@ -21,6 +22,7 @@ if option == 0
 
     # Plot hydro data
     # plotBEMIO(hydro)
+    
 elseif option == 1
     # OSWEC
     hydro = readWAMIT("C:/Users/jelope/Desktop/Git/WEC-Sim/examples/OSWEC/hydroData/oswec.out")
