@@ -1,0 +1,83 @@
+using GeometryBasics
+using FileIO
+using MeshIO
+using Makie
+using GLMakie
+
+# Load the .stl files and mesh them together
+mesh1 = load("C:/Users/jelope/Desktop/Git/WEC-Sim/examples/RM3/geometry/float.stl")
+vertices1 = GeometryBasics.coordinates(mesh1)
+faces1 = GeometryBasics.faces(mesh1)
+
+mesh2 = load("C:/Users/jelope/Desktop/Git/WEC-Sim/examples/RM3/geometry/plate.stl")
+vertices2 = GeometryBasics.coordinates(mesh2)
+faces2 = GeometryBasics.faces(mesh2)
+
+# Calculate the offset to place the first mesh on top of the second mesh
+max_height2 = maximum(v[3] for v in vertices2)
+min_height1 = minimum(v[3] for v in vertices1)
+vertical_offset = max_height2 - min_height1 + 1
+vertices1 = [Point3f0(v[1], v[2], v[3] + vertical_offset - 10) for v in vertices1] # -10 part was hardcoded to better match the visualization compared to MATLAB
+
+# Combine vertices and faces
+vertices_combined = vcat(vertices1, vertices2)
+faces_combined = vcat(faces1, [NgonFace(f.data .+ length(vertices1)) for f in faces2])
+
+# Set up wave simulation parameters
+startTime = 100
+endTime = 105
+timestep = 0.5
+wave_amplitude = 2.5
+wave_frequency = 8.0
+
+# Function to generate wave elevations
+function generate_wave_elevation(t, Nx, Ny)
+    wave_elevation = zeros(Float32, Nx, Ny)
+    for i in 1:Nx
+        for j in 1:Ny
+            wave_elevation[i, j] = wave_amplitude * sin(wave_frequency * (t + (i + j) / 10))
+        end
+    end
+    return wave_elevation
+end
+
+# Function to plot the mesh and wave simulation
+function plot_mesh_with_waves(vertices, faces, startTime, endTime, timestep)
+    fig = Figure(resolution = (800, 800))
+    ax = LScene(fig[1, 1], scenekw = (raw = true,))
+
+    Nx, Ny = 50, 50  # Grid size for wave simulation
+
+    # Function to update the mesh and wave elevation
+    function update_plot!(t)
+        wave_elevation = generate_wave_elevation(t, Nx, Ny)
+        
+        # Clear the previous plot
+        empty!(ax.scene.plots)
+
+        # Plot the mesh
+        for face in faces
+            verts = [vertices[i] for i in face.data]
+            mesh!(ax, verts, color = :gray)
+        end
+
+        # Plot the wave elevation
+        for i in 1:Nx
+            for j in 1:Ny
+                wave_height = wave_elevation[i, j]
+                scatter!(ax, Point3f0(i - Nx/2, j - Ny/2, wave_height), color = :blue)
+            end
+        end
+    end
+
+    # Create an animation of the wave simulation
+    record(fig, "wave_simulation.gif", startTime:timestep:endTime) do t
+        update_plot!(t)
+    end
+    
+    # Display the figure
+    display(fig)
+end
+
+# Plot the combined mesh and wave simulation
+plot_mesh_with_waves(vertices_combined, faces_combined, startTime, endTime, timestep)
