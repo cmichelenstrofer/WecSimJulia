@@ -1,9 +1,9 @@
-include("C:/Users/jelope/Desktop/Git/WEC-Sim/source/functions/BEMIO/readWAMITv2.jl")
-include("C:/Users/jelope/Desktop/Git/WEC-Sim/source/functions/BEMIO/radiationIRFv2.jl")
-include("C:/Users/jelope/Desktop/Git/WEC-Sim/source/functions/BEMIO/radiationIRFSSv2.jl")
-include("C:/Users/jelope/Desktop/Git/WEC-Sim/source/functions/BEMIO/excitationIRFv2.jl")
-include("C:/Users/jelope/Desktop/Git/WEC-Sim/source/functions/BEMIO/normalizeBEMv2.jl")
-#include("C:/Users/jelope/Desktop/Git/WEC-Sim/source/functions/BEMIO/writeBEMIOH5.jl")
+include("readWAMIT.jl")
+include("radiationIRF.jl")
+include("radiationIRFSS.jl")
+include("excitationIRF.jl")
+include("normalizeBEM.jl")
+#include("writeBEMIOH5.jl")
 
 # User input
 option = 1
