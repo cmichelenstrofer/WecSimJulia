@@ -5,12 +5,12 @@ using Makie
 using GLMakie
 
 # Load the following .stl files and mesh them together 
-mesh1 = load("C:/Users/jelope/Desktop/Git/WEC-Sim/examples/OSWEC/geometry/base.stl")
+mesh1 = load("Models/geometryFiles/RM3/float.stl")
 vertices1 = GeometryBasics.coordinates(mesh1)
 faces1 = GeometryBasics.faces(mesh1)
 
 
-mesh2 = load("C:/Users/jelope/Desktop/Git/WEC-Sim/examples/RM3/geometry/plate.stl")
+mesh2 = load("Models/geometryFiles/RM3/plate.stl")
 vertices2 = GeometryBasics.coordinates(mesh2)
 faces2 = GeometryBasics.faces(mesh2)
 
