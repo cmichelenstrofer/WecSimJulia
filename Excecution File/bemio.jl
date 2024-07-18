@@ -1,38 +1,41 @@
-include("readWAMIT.jl")
+include("C:/Users/jelope/Desktop/WecSimJulia-main/ReadWriteFILE/readWAMIT.jl")
 include("functions/radiationIRF.jl")
 include("functions/radiationIRFSS.jl")
 include("functions/excitationIRF.jl")
 include("functions/normalizeBEM.jl")
 #include(ReadWriteFILE/writeBEMIOH5.jl")
 
-# User input
-option = 1
+## Test for the two case studies: RM3 and OSWEC. 
+## option 0 is for RM3 case, option 1 is for OSWEC case
+## Until the moment the only files not able to run correctly are the radiationIRFSS and writeBEMIOH5 functions
+
+
+# User input 
+option = 0
 
 if option == 0
     # WAMIT
-    hydro = readWAMIT("ReadWriteFILE/InputFiles/RM3/rm3.out")
-    radiationIRF(hydro, 60)
-    #radiationIRFSS(hydro)
+    hydro = readWAMIT("C:/Users/jelope/Desktop/Git/WEC-Sim/examples/RM3/hydroData/rm3.out")
+    hydro = radiationIRF(hydro, 60)
+    #hydro = radiationIRFSS(hydro)
     excitationIRF(hydro, 157)
     
     # Print field values for comparison
     print_hydro_data(hydro)
 
     #writeBEMIOH5(hydro)
-
     # Plot hydro data
     # plotBEMIO(hydro)
     
 elseif option == 1
     # OSWEC
-    hydro = readWAMIT("ReadWriteFILE/InputFiles/OSWEC/oswec.out")
+    hydro = readWAMIT("C:/Users/jelope/Desktop/Git/WEC-Sim/examples/OSWEC/hydroData/oswec.out")
 
-    #hydro = radiationIRF(hydro, 30.0f0, 1001, 1001, minimum(hydro.w), maximum(hydro.w))
-    #hydro = radiationIRFSS(hydro)
-    #hydro = excitationIRF(hydro, 30, nothing, nothing, nothing, nothing)
+    radiationIRF(hydro, 30)
+    #radiationIRFSS(hydro)
+    excitationIRF(hydro, 30)
     #writeBEMIOH5(hydro)
 
-    # Print field values for comparison
     print_hydro_data(hydro)
 
     # Plot hydro data
