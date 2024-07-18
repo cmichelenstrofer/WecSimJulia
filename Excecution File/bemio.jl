@@ -10,7 +10,7 @@ option = 1
 
 if option == 0
     # WAMIT
-    hydro = readWAMIT("C:/Users/jelope/Desktop/Git/WEC-Sim/examples/RM3/hydroData/rm3.out")
+    hydro = readWAMIT("ReadWriteFILE/InputFiles/RM3/rm3.out")
     radiationIRF(hydro, 60)
     #radiationIRFSS(hydro)
     excitationIRF(hydro, 157)
