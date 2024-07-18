@@ -46,16 +46,15 @@ mutable struct HydroData
     ra_t::Vector{Float64}
     ra_w::Vector{Float64}
     ss_A::Array{Float64, 4}
-    ss_B::Array{Float64, 3}
+    ss_B::Array{Float64, 4}
     ss_C::Array{Float64, 4}
-    ss_D::Array{Float64, 2}
+    ss_D::Array{Float64, 3}
     ss_K::Array{Float64, 3}
     ss_conv::Array{Float64, 2}
     ss_R2::Array{Float64, 2}
     ss_O::Array{Float64, 2}
 end
 
-# Ensure the normalizeBEM and radiationIRFSS functions are included
 include("C:/Users/jelope/Desktop/Git/WEC-Sim/source/functions/BEMIO/normalizeBEMv2.jl")
 
 function readWAMIT(file_path::String)
@@ -115,16 +114,16 @@ function readWAMIT(file_path::String)
         zeros(Float64, 12, 12, Nf),       # Pressure Integration Drift Forces
         zeros(Float64, 0, 0, 0),  # Placeholder for gbm
         zeros(Float64, 12, 12, 1001),  # Initialize ra_K with correct dimensions
-        Float64[],     # Placeholder for ra_t
-        Float64[],     # Placeholder for ra_w
-        zeros(Float64, 12, 12, 10, 10),   # ss_A
-        zeros(Float64, 12, 12, 10),       # ss_B
-        zeros(Float64, 12, 12, 1, 10),    # ss_C
-        zeros(Float64, 12, 12),           # ss_D
-        zeros(Float64, 12, 12, 1001),     # ss_K
-        zeros(Float64, 12, 12),           # ss_conv
-        zeros(Float64, 12, 12),           # ss_R2
-        zeros(Float64, 12, 12)            # ss_O
+        Float64[],                           # Placeholder for ra_t
+        Float64[],                           # Placeholder for ra_w
+        zeros(Float64, 12, 12, 10, 10),      # ss_A
+        zeros(Float64, 12, 12, 10, 1),       # ss_B
+        zeros(Float64, 12, 12, 1, 10),       # ss_C
+        zeros(Float64, 12, 12, 1),           # ss_D
+        zeros(Float64, 12, 12, 1001),        # ss_K
+        zeros(Float64, 12, 12),              # ss_conv
+        zeros(Float64, 12, 12),              # ss_R2
+        zeros(Float64, 12, 12)               # ss_O
     )
 
     reading_added_mass_inf = false
@@ -135,7 +134,8 @@ function readWAMIT(file_path::String)
     for i in 1:N
         ProgressMeter.update!(progress, i)
         line = raw[i]
-
+        
+        ## Parsing data for body names and body numbers ##
         if occursin("Body number:", line)
             k += 1
             tmp = split(line, [' ', '.'])
@@ -146,6 +146,7 @@ function readWAMIT(file_path::String)
             push!(data.Vo, 0.0)
         end
 
+        ## Parsing data for center of gravity for each body ##
         if occursin("XBODY =", line)
             values = split(line)
             xg = parse(Float64, values[3])
@@ -154,6 +155,7 @@ function readWAMIT(file_path::String)
             data.cg[:, k] = [xg, yg, zg]
         end
 
+        ## Parsing data for center of buoyancy for each body ##
         if occursin("Center of Buoyancy (Xb,Yb,Zb):", line)
             values = split(line[findfirst(':', line)+1:end])
             xb = parse(Float64, values[1])
@@ -162,6 +164,7 @@ function readWAMIT(file_path::String)
             data.cb[:, k] = [xb, yb, zb]
         end
 
+        ## Parsing data for Hydrostatic stiffness ##
         if occursin("Hydrostatic and gravitational", line)
             data.Khs[:, :, k] .= 0.0
             tmp1 = parse.(Float64, split(raw[i+1][findfirst(':', raw[i+1])+1:end]))
@@ -174,6 +177,7 @@ function readWAMIT(file_path::String)
             data.Khs[5, 5:6, k] = tmp3
         end
 
+        ## Parsing data for Water Depth ##
         if occursin("Water depth:", line)
             if occursin("infinite", line)
                 data.h = Inf
@@ -184,20 +188,22 @@ function readWAMIT(file_path::String)
                 if depth_val !== nothing
                     data.h = depth_val
                 else
-                    println("Failed to parse water depth value: ", line)
+                    #println("Failed to parse water depth value: ", line)
                 end
             end
         end
 
+        ## Parsing data for Displacement Volume ##
         if occursin("Volumes (VOLX,VOLY,VOLZ):", line)
             numbers_part = split(line, ":")[2]
             numbers_str = split(strip(numbers_part))
             numbers_str = filter(s -> !isempty(s), numbers_str)
-            println("Parsing Volumes: ", numbers_str)
+            #println("Parsing Volumes: ", numbers_str)
             numbers = parse.(Float64, numbers_str)
             data.Vo[k] = mean(numbers)
         end
 
+         ## Parsing data for Wave Period and frequency ##
         if occursin("Wave period (sec) =", line)
             split_line = split(line, "=")
             if length(split_line) >= 2
@@ -205,19 +211,21 @@ function readWAMIT(file_path::String)
                 current_wave_period += 1
                 data.T[current_wave_period] = wave_period
                 data.w[current_wave_period] = Float64(2 * π / wave_period)  # Ensure wave frequency is Float64
-                println("Parsed wave period for period $current_wave_period: $wave_period")
-                println("Computed wave frequency for period $current_wave_period: $(data.w[current_wave_period])")
+                #println("Parsed wave period for period $current_wave_period: $wave_period")
+                #println("Computed wave frequency for period $current_wave_period: $(data.w[current_wave_period])")
             end
         end
 
+        ## Parsing data for Wave Headings ##
         if occursin("Wave Heading", line)
             tmp = parse(Float64, split(line[findfirst(':', line)+1:end])[1])
             push!(data.theta, tmp)
             data.Nh += 1
         end
 
+        ## Flag indicator for reading and parsing from the respective section of A at infinite wave period ##
         if occursin("ADDED-MASS COEFFICIENTS", line) && occursin("Wavenumber = infinite", raw[i-2])
-            println("Found ADDED-MASS COEFFICIENTS with Wavenumber = infinite at line $i")
+            #println("Found ADDED-MASS COEFFICIENTS with Wavenumber = infinite at line $i")
             reading_added_mass_inf = true
             continue
         end
@@ -225,33 +233,36 @@ function readWAMIT(file_path::String)
         if reading_added_mass_inf
             if occursin("************************************************************************", line)
                 reading_added_mass_inf = false
-                println("Ending ADDED-MASS COEFFICIENTS with Wavenumber = infinite at line $i")
+                #println("Ending ADDED-MASS COEFFICIENTS with Wavenumber = infinite at line $i")
                 continue
             end
 
+             ## Parsing data for A at infinite wave period ##
             split_line = split(line)
             if length(split_line) == 3 && !isnothing(tryparse(Int, split_line[1])) && !isnothing(tryparse(Int, split_line[2])) && !isnothing(tryparse(Float64, split_line[3]))
                 I = parse(Int, split_line[1])
                 J = parse(Int, split_line[2])
                 A = parse(Float64, split_line[3])
                 data.Ainf[I, J] = A
-                println("Ainf[$I, $J] = $A")
+                #println("Ainf[$I, $J] = $A")
             end
         end
 
+        ## Flag indicator for reading and parsing from the respective section of A and B at different wave periods ##
         if occursin("ADDED-MASS AND DAMPING COEFFICIENTS", line)
             reading_added_mass_damping = true
-            println("Found ADDED-MASS AND DAMPING COEFFICIENTS at line $i for wave period $current_wave_period")
+            #println("Found ADDED-MASS AND DAMPING COEFFICIENTS at line $i for wave period $current_wave_period")
             continue
         end
 
         if reading_added_mass_damping
             if occursin("************************************************************************", line)
                 reading_added_mass_damping = false
-                println("Ending ADDED-MASS AND DAMPING COEFFICIENTS at line $i for wave period $current_wave_period")
+                #println("Ending ADDED-MASS AND DAMPING COEFFICIENTS at line $i for wave period $current_wave_period")
                 continue
             end
 
+            ## Parsing data for A at infinite wave period ##
             split_line = split(line)
             if length(split_line) == 4 && !isnothing(tryparse(Int, split_line[1])) && !isnothing(tryparse(Int, split_line[2])) && !isnothing(tryparse(Float64, split_line[3])) && !isnothing(tryparse(Float64, split_line[4]))
                 I = parse(Int, split_line[1])
@@ -260,23 +271,25 @@ function readWAMIT(file_path::String)
                 B = parse(Float64, split_line[4])
                 data.A[I, J, current_wave_period] = A
                 data.B[I, J, current_wave_period] = B
-                println("A[$I, $J, $current_wave_period] = $A, B[$I, $J, $current_wave_period] = $B")
+                #println("A[$I, $J, $current_wave_period] = $A, B[$I, $J, $current_wave_period] = $B")
             end
         end
 
+        ## Flag indicator for reading the exciting forces and moments section ##
         if occursin("HASKIND EXCITING FORCES AND MOMENTS", line) || occursin("DIFFRACTION EXCITING FORCES AND MOMENTS", line) || occursin("RESPONSE AMPLITUDE OPERATORS", line)
             reading_exciting_forces = true
-            println("Found EXCITING FORCES at line $i for wave period $current_wave_period")
+            #println("Found EXCITING FORCES at line $i for wave period $current_wave_period")
             continue
         end
 
         if reading_exciting_forces
             if occursin("************************************************************************", line)
                 reading_exciting_forces = false
-                println("Ending EXCITING FORCES at line $i for wave period $current_wave_period")
+                #println("Ending EXCITING FORCES at line $i for wave period $current_wave_period")
                 continue
             end
 
+            ## Parsing data for ex_ma, ex_ph, ex_re, ex_im ##
             split_line = split(line)
             if length(split_line) == 3 && !isnothing(tryparse(Int, split_line[1])) && !isnothing(tryparse(Float64, split_line[2])) && !isnothing(tryparse(Int, split_line[3]))
                 I = abs(parse(Int, split_line[1]))
@@ -291,9 +304,9 @@ function readWAMIT(file_path::String)
                     data.ex_ph[I, 1, wave_period_idx] = phase_rad
                     data.ex_re[I, 1, wave_period_idx] = real_part
                     data.ex_im[I, 1, wave_period_idx] = imaginary_part
-                    println("Exciting Force: magnitude=$magnitude, phase=$phase_rad, real_part=$real_part, imaginary_part=$imaginary_part for mode $I, wave period $wave_period_idx")
+                    #println("Exciting Force: magnitude=$magnitude, phase=$phase_rad, real_part=$real_part, imaginary_part=$imaginary_part for mode $I, wave period $wave_period_idx")
                 else
-                    println("Warning: Out-of-bounds index for exciting force at line $i")
+                    #println("Warning: Out-of-bounds index for exciting force at line $i")
                 end
             end
         end
@@ -342,7 +355,7 @@ function readWAMIT(file_path::String)
                         data.sc_re[I, 1, i] = values[6]
                         data.sc_im[I, 1, i] = values[7]
                     else
-                        println("Warning: Out-of-bounds index for scattering force at line $n")
+                        #println("Warning: Out-of-bounds index for scattering force at line $n")
                     end
                 end
             end
@@ -365,7 +378,7 @@ function readWAMIT(file_path::String)
                         data.fk_re[I, 1, i] = values[6]
                         data.fk_im[I, 1, i] = values[7]
                     else
-                        println("Warning: Out-of-bounds index for Froude-Krylov force at line $n")
+                        #println("Warning: Out-of-bounds index for Froude-Krylov force at line $n")
                     end
                 end
             end
@@ -507,5 +520,5 @@ function print_hydro_data(data::HydroData)
     println("ss_K: ", data.ss_K[:, :, 1:3])
     println("ss_conv: ", data.ss_conv)
     println("ssR2: ", data.ss_R2)
-    println("ss_O: ", data.ssO)
+    println("ss_O: ", data.ss_O)
 end
