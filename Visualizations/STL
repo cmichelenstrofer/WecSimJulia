@@ -5,7 +5,7 @@ using Makie
 using GLMakie
 
 # Load the following .stl files and mesh them together 
-mesh1 = load("C:/Users/jelope/Desktop/Git/WEC-Sim/examples/RM3/geometry/float.stl")
+mesh1 = load("C:/Users/jelope/Desktop/Git/WEC-Sim/examples/OSWEC/geometry/base.stl")
 vertices1 = GeometryBasics.coordinates(mesh1)
 faces1 = GeometryBasics.faces(mesh1)
 
@@ -26,13 +26,14 @@ faces_combined = vcat(faces1, [NgonFace(f.data .+ length(vertices1)) for f in fa
 
 # Function to plot the mesh
 function plot_mesh(vertices, faces)
+    set_theme!(theme_black())
     fig = Figure(resolution = (400, 400))
     ax = LScene(fig[1, 1], scenekw = (raw = true,))
     
     # Plot each face of the mesh
     for face in faces
         verts = [vertices[i] for i in face.data]
-        mesh!(ax, verts, color = :gray)
+        mesh!(ax, verts, color = :brown)
     end
     
     display(fig)
