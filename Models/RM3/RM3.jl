@@ -4,17 +4,13 @@ using LinearAlgebra
 using ModelingToolkitStandardLibrary.Mechanical.Translational
 using ModelingToolkitStandardLibrary.Mechanical.Rotational
 using ModelingToolkitStandardLibrary.Blocks
-using ModelingToolkitStandardLibrary.Blocks.Sources # Explicitly import Blocks.Sources
 using ModelingToolkit: t_nounits as t
 using Plots
 using Symbolics: scalarize
 
 # Include the readWAMITv2.jl file
-include("C:/Users/jelope/Desktop/Git/WEC-Sim/source/functions/BEMIO/readWAMITv2.jl")
-include("C:/Users/jelope/Desktop/Git/WEC-Sim/examples/RM3/basicSim.jl")
-
-# Load the hydrodynamic data
-hydroData = readWAMIT("C:/Users/jelope/Desktop/Git/WEC-Sim/examples/RM3/hydroData/rm3.out")
+include("C:/Users/jelope/Desktop/WecSimJulia-main/ReadWriteFILE/readWAMIT.jl")
+include("C:/Users/jelope/Desktop/WecSimJulia-main/Models/RM3/basicSim.jl")
 
 # User-specified value to search within the :T vector
 user_input_T = 8  # Example value, replace with actual user input
