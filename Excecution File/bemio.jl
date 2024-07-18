@@ -3,7 +3,7 @@ include("functions/radiationIRF.jl")
 include("functions/radiationIRFSS.jl")
 include("functions/excitationIRF.jl")
 include("functions/normalizeBEM.jl")
-#include("writeBEMIOH5.jl")
+#include(ReadWriteFILE/writeBEMIOH5.jl")
 
 # User input
 option = 1
