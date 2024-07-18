@@ -1,8 +1,8 @@
 include("readWAMIT.jl")
-include("radiationIRF.jl")
-include("radiationIRFSS.jl")
-include("excitationIRF.jl")
-include("normalizeBEM.jl")
+include("functions/radiationIRF.jl")
+include("functions/radiationIRFSS.jl")
+include("functions/excitationIRF.jl")
+include("functions/normalizeBEM.jl")
 #include("writeBEMIOH5.jl")
 
 # User input
