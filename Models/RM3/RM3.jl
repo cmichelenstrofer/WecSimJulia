@@ -4,15 +4,17 @@ using LinearAlgebra
 using ModelingToolkitStandardLibrary.Mechanical.Translational
 using ModelingToolkitStandardLibrary.Mechanical.Rotational
 using ModelingToolkitStandardLibrary.Blocks
+using ModelingToolkitStandardLibrary.Blocks.Sources # Explicitly import Blocks.Sources
 using ModelingToolkit: t_nounits as t
 using Plots
 using Symbolics: scalarize
 
 # Include the readWAMITv2.jl file
-include("C:/Users/jaime/OneDrive/Documents/Sandia National Labs/Internship/WEC-Sim-main/WEC-Sim-main/source/functions/BEMIO/readWAMITv2.jl")
+include("C:/Users/jelope/Desktop/Git/WEC-Sim/source/functions/BEMIO/readWAMITv2.jl")
+include("C:/Users/jelope/Desktop/Git/WEC-Sim/examples/RM3/basicSim.jl")
 
 # Load the hydrodynamic data
-hydroData = readWAMIT("C:/Users/jaime/OneDrive/Documents/Sandia National Labs/Internship/WEC-Sim-main/WEC-Sim-main/examples/RM3/hydroData/rm3.out")
+hydroData = readWAMIT("C:/Users/jelope/Desktop/Git/WEC-Sim/examples/RM3/hydroData/rm3.out")
 
 # User-specified value to search within the :T vector
 user_input_T = 8  # Example value, replace with actual user input
@@ -88,12 +90,18 @@ c = body1.damping_coefficient
 f = body1.forcing_frequency
 a = body1.forcing_amplitude
 
+# Retrieve the excitation force time series from basicSim.jl
+F_wave = WaveClassModule.SharedData.F_wave
+t_series = WaveClassModule.SharedData.t
+
 @named mass = Translational.Mass(m=m, s=s) # using full function name avoids conflicts
 @named spring = Translational.Spring(k=k, delta_s=delta_s)
 @named damper = Translational.Damper(d=c)
 @named frame = Translational.Fixed()
-@named sine_source = Blocks.Sine(frequency=f, amplitude=a)
 @named force = Translational.Force()
+
+# Define the excitation force as a time series
+@named sine_source = Blocks.Sources.TimeTable(time=t_series, values=F_wave)
 
 # setup mass spring damper
 msd_eqs = [connect(frame.flange, spring.flange_a),
@@ -116,4 +124,3 @@ sol = solve(prob)
 display(plot(sol, idxs=[mass.s, mass.v],
      title="Mass Spring Damper",
      labels=["Position" "Velocity"]))
-
