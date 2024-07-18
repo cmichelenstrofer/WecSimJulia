@@ -25,7 +25,7 @@ if option == 0
     
 elseif option == 1
     # OSWEC
-    hydro = readWAMIT("C:/Users/jelope/Desktop/Git/WEC-Sim/examples/OSWEC/hydroData/oswec.out")
+    hydro = readWAMIT("ReadWriteFILE/InputFiles/OSWEC/oswec.out")
 
     #hydro = radiationIRF(hydro, 30.0f0, 1001, 1001, minimum(hydro.w), maximum(hydro.w))
     #hydro = radiationIRFSS(hydro)
