@@ -3,11 +3,10 @@ using LinearAlgebra
 using ControlSystems
 using QuadGK
 
-include("C:/Users/jelope/Desktop/Git/WEC-Sim/source/functions/BEMIO/readWAMITv2.jl")
-include("C:/Users/jelope/Desktop/Git/WEC-Sim/source/objects/waveClass.jl")
+include("C:/Users/jelope/Desktop/WecSimJulia-main/ReadWriteFILE/readWAMIT.jl")
+include("C:/Users/jelope/Desktop/Git/WEC-Sim/source/Objects/waveClass.jl")
 using .WaveClassModule: WaveClass
 
-hydro = readWAMIT("C:/Users/jelope/Desktop/Git/WEC-Sim/examples/RM3/hydroData/rm3.out")
 # Function for cumulative trapezoidal integration
 function cumtrapz(x, y)
     n = length(x)
