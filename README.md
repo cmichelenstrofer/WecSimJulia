@@ -1,5 +1,5 @@
 # WecSimJulia
-This is a test to visualize the WEC-Sim workspace into the Julia programming language
+This is a demonstration test to visualize the WEC-Sim functionality into the Julia programming language
 
 This repository consists of the followin processes:
 1) Run the main excecution file (bemio.jl)
@@ -7,6 +7,5 @@ This repository consists of the followin processes:
    a) RM3:
    b) OSWEC:
 3) Run the visualization files contained in the Visualizations folder:
-4) 
 
 
