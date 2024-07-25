@@ -29,7 +29,7 @@ if option == 0
     
 elseif option == 1
     # OSWEC
-    hydro = readWAMIT("C:/Users/jelope/Desktop/Git/WEC-Sim/examples/OSWEC/hydroData/oswec.out")
+    hydro = readWAMIT("ReadWriteFILE/InputFiles/OSWEC/oswec.out")
 
     radiationIRF(hydro, 30)
     #radiationIRFSS(hydro)
