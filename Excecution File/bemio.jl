@@ -1,4 +1,4 @@
-include("C:/Users/jelope/Desktop/WecSimJulia-main/ReadWriteFILE/readWAMIT.jl")
+include("ReadWriteFILE/readWAMIT.jl")
 include("functions/radiationIRF.jl")
 include("functions/radiationIRFSS.jl")
 include("functions/excitationIRF.jl")
