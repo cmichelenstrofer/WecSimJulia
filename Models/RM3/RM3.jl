@@ -1,4 +1,4 @@
-using ModelingToolkit, DifferentialEquations, LinearAlgebra
+using ModelingToolkit, DifferentialEquations, LinearAlgebra, ModelingToolkitStandardLibrary
 using ModelingToolkitStandardLibrary.Mechanical.Translational
 using ModelingToolkitStandardLibrary.Mechanical.Rotational
 using ModelingToolkitStandardLibrary.Blocks
@@ -9,7 +9,7 @@ using Symbolics: scalarize
 # Include the readWAMIT.jl file
 include("C:/Users/jelope/Desktop/WecSimJulia-main/ReadWriteFILE/readWAMIT.jl")
 
-hydro = readWAMIT("C:/Users/jelope/Desktop/Git/WEC-Sim/examples/RM3/hydroData/rm3.out")
+hydro = readWAMIT("C:/Users/jelope/Desktop/WecSimJulia-main/ReadWriteFILE/InputFiles/RM3/rm3.out")
 
 # User-specified value to search within the :T vector
 user_input_T = 8
@@ -22,8 +22,6 @@ println("Dimensions of A: ", size(hydro.A))
 println("Dimensions of B: ", size(hydro.B))
 println("Dimensions of ex_re: ", size(hydro.ex_re))
 println("Dimensions of Khs: ", size(hydro.Khs))
-
-
 
 # Define function to get parameters based on wave index
 function get_wave_parameters(hydroData, wave_index)
@@ -51,7 +49,7 @@ println("B (Damping Coefficient): ", B)
 println("F_ext (External Forcing Function): ", F_ext)
 println("K_hs (Hydrostatic Stiffness):", spring_constant)
 
-# define all variables
+# Define all variables
 m = (hydro.rho * hydro.Vo[1]) + A
 s = 0.0 # initial mass position
 k = spring_constant
@@ -73,18 +71,19 @@ println("Rho (rho): ", hydro.rho)
 @named sine_source = Blocks.Sine(frequency = f, amplitude = a)
 @named force = Translational.Force()
 
-# setup mass spring damper
-msd_eqs = [connect(frame.flange, spring.flange_a)
-          connect(frame.flange, damper.flange_a)
-          connect(damper.flange_b, mass.flange)
-          connect(spring.flange_b, mass.flange)
-          connect(mass.flange, force.flange)
-          connect(sine_source.output,force.f)]
+# Setup mass spring damper
+connections = [
+    ModelingToolkitStandardLibrary.Mechanical.Translational.connect(frame.flange, spring.flange_a),
+    ModelingToolkitStandardLibrary.Mechanical.Translational.connect(frame.flange, damper.flange_a),
+    ModelingToolkitStandardLibrary.Mechanical.Translational.connect(damper.flange_b, mass.flange),
+    ModelingToolkitStandardLibrary.Mechanical.Translational.connect(spring.flange_b, mass.flange),
+    ModelingToolkitStandardLibrary.Mechanical.Translational.connect(mass.flange, force.flange),
+    ModelingToolkitStandardLibrary.Blocks.connect(sine_source.output, force.f)
+]
 
-@named msd_model = ODESystem(msd_eqs, t, systems = [mass, spring, damper, frame, 
-                            sine_source, force])
+@named msd_model = ODESystem(connections, t, systems = [mass, spring, damper, frame, sine_source, force])
 
-print("Set Up Successfully")
+println("Set Up Successfully")
 
 sys = structural_simplify(msd_model)
 prob = ODEProblem(sys, Pair[], (0, 400.0))
@@ -93,4 +92,3 @@ sol = solve(prob)
 display(plot(sol, idxs=[mass.s], title="Position", labels=["Position"]))
 display(plot(sol, idxs=[mass.v], title="Velocity", labels=["Velocity"]))
 display(plot(sol, idxs=[mass.f], title="Force", labels=["Force"]))
-
